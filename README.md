@@ -1,4 +1,4 @@
 # sieve
 
-A pass through API or proxy that lets you monitor (in realtime) requests made from your applications to external HTTP-
-based services.
+A pass-through proxy for development purposes that lets you monitor requests made from your applications to external
+HTTP-based services.
