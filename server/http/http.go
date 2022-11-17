@@ -39,6 +39,8 @@ func (h *HttpServer) ListenAndServe(addr string) error {
 				router.ServeHTTP(rw, r)
 			} else if strings.HasPrefix(r.RequestURI, "/http://") || strings.HasPrefix(r.RequestURI, "/https://") {
 				h.handleProxyEndpoint(rw, r)
+			} else {
+				respondNotFound(rw)
 			}
 		}),
 	}
