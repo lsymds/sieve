@@ -14,15 +14,15 @@ websocket.onopen = function () {
 };
 
 websocket.onmessage = function (evt: MessageEvent<any>) {
-  console.log(evt);
   const { type, data } = JSON.parse(evt.data) as {
     type: "operation" | "ping";
     data: any;
   };
 
   if (type === "operation") {
+    // Fetch the operation's details.
     const operationsStore = useOperationsStore();
-    operationsStore.operations.push(data);
+    operationsStore.getOperation(data.id);
   }
 };
 
