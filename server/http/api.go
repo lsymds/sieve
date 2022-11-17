@@ -1,10 +1,12 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/lsymds/sieve"
 )
@@ -66,4 +68,17 @@ func (s *HttpServer) handleWebsocketEndpoint(rw http.ResponseWriter, r *http.Req
 			}()
 		}
 	}
+}
+
+// handleGetOperationEndpoint returns an operation by its requested identifier.
+func (s *HttpServer) handleGetOperationEndpoint(rw http.ResponseWriter, r *http.Request) {
+	operationId := mux.Vars(r)["operationId"]
+
+	operation := s.store.GetOperationById(operationId)
+	if operation == nil {
+		respondNotFound(rw)
+		return
+	}
+
+	json.NewEncoder(rw).Encode(operation)
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/lsymds/sieve"
 )
 
@@ -25,15 +26,17 @@ func NewHttpServer(store *sieve.OperationsStore) (*HttpServer, error) {
 
 // ListenAndServe listens on the provided port, serving any relevant endpoints for its lifetime.
 func (h *HttpServer) ListenAndServe(addr string) error {
-	http.DefaultServeMux.HandleFunc("/_/ws", h.handleWebsocketEndpoint)
+	router := mux.NewRouter()
+
+	router.HandleFunc("/_/ws", h.handleWebsocketEndpoint)
+	router.HandleFunc("/_/operations/{operationId}", h.handleGetOperationEndpoint).Methods("GET")
 
 	server := &http.Server{
 		Addr: addr,
 		Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			// If internal API (ala /_/) let the multiplexer handle it - else, proxy it.
 			if strings.HasPrefix(r.RequestURI, "/_/") {
-				h, _ := http.DefaultServeMux.Handler(r)
-				h.ServeHTTP(rw, r)
+				router.ServeHTTP(rw, r)
 			} else if strings.HasPrefix(r.RequestURI, "/http://") || strings.HasPrefix(r.RequestURI, "/https://") {
 				h.handleProxyEndpoint(rw, r)
 			}
@@ -46,4 +49,9 @@ func (h *HttpServer) ListenAndServe(addr string) error {
 // respondBadGateway writes a 502 BAD GATEWAY response to the response writer.
 func respondBadGateway(w http.ResponseWriter) {
 	w.WriteHeader(502)
+}
+
+// respondNotFound writes a 404 NOT FOUND response to the response writer.
+func respondNotFound(w http.ResponseWriter) {
+	w.WriteHeader(404)
 }
