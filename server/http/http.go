@@ -34,7 +34,7 @@ func (h *HttpServer) ListenAndServe(addr string) error {
 			if strings.HasPrefix(r.RequestURI, "/_/") {
 				h, _ := http.DefaultServeMux.Handler(r)
 				h.ServeHTTP(rw, r)
-			} else {
+			} else if strings.HasPrefix(r.RequestURI, "/http://") || strings.HasPrefix(r.RequestURI, "/https://") {
 				h.handleProxyEndpoint(rw, r)
 			}
 		}),
