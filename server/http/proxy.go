@@ -12,10 +12,10 @@ import (
 	"github.com/lsymds/sieve"
 )
 
-// handleProxyEndpoint is the HTTP handler for proxying requests to their intended destinations. It captures interesting
+// handleProxy is the HTTP handler for proxying requests to their intended destinations. It captures interesting
 // information, forwards or proxies the request, reads the response, then returns it to the user like this
 // server did not exist 👻.
-func (s *HttpServer) handleProxyEndpoint(rw http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) handleProxy(rw http.ResponseWriter, r *http.Request) {
 	newRequest, err := buildIntendedRequest(r)
 	if err != nil {
 		respondBadGateway(rw)

@@ -24,25 +24,25 @@ type websocketMessage struct {
 	Data interface{} `json:"data"`
 }
 
-// handleWebsocketEndpoint handles the websocket endpoint, passing events over the wire when they are received.
-func (s *HttpServer) handleWebsocketEndpoint(rw http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(rw, r, nil)
+// handleWebsocket handles the websocket endpoint, passing events over the wire when they are received.
+func (s *HttpServer) handleWebsocket(rw http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(rw, r, nil)
 	if err != nil {
 		respondBadGateway(rw)
 		return
 	}
-	defer c.Close()
+	defer ws.Close()
 
-	// The websocket client can only write one message at a time. Thus, we need a mutex to prevent the concurrent
+	// The websocket client can only write one message at a time. Thus, we need a mtx to prevent the concurrent
 	// writes from happening.
-	mutex := sync.Mutex{}
+	mtx := sync.Mutex{}
 
 	// Subscribe to the operations store, publishing a message whenever an operation is saved.
 	removeOperationsStoreSubscription := s.store.AddListener(func(o *sieve.Operation) {
-		mutex.Lock()
-		defer mutex.Unlock()
+		mtx.Lock()
+		defer mtx.Unlock()
 
-		c.WriteJSON(websocketMessage{
+		ws.WriteJSON(websocketMessage{
 			Type: "operation",
 			Data: struct {
 				OperationId string `json:"operationId"`
@@ -59,10 +59,10 @@ func (s *HttpServer) handleWebsocketEndpoint(rw http.ResponseWriter, r *http.Req
 		select {
 		case <-ticker.C:
 			func() {
-				mutex.Lock()
-				defer mutex.Unlock()
+				mtx.Lock()
+				defer mtx.Unlock()
 
-				if err := c.WriteJSON(websocketMessage{Type: "ping"}); err != nil {
+				if err := ws.WriteJSON(websocketMessage{Type: "ping"}); err != nil {
 					return
 				}
 			}()
@@ -70,8 +70,8 @@ func (s *HttpServer) handleWebsocketEndpoint(rw http.ResponseWriter, r *http.Req
 	}
 }
 
-// handleGetOperationEndpoint returns an operation by its requested identifier.
-func (s *HttpServer) handleGetOperationEndpoint(rw http.ResponseWriter, r *http.Request) {
+// handleGetOperation returns an operation by its requested identifier.
+func (s *HttpServer) handleGetOperation(rw http.ResponseWriter, r *http.Request) {
 	operationId := mux.Vars(r)["operationId"]
 
 	operation := s.store.GetOperationById(operationId)

@@ -28,8 +28,8 @@ func NewHttpServer(store *sieve.OperationsStore) (*HttpServer, error) {
 func (h *HttpServer) ListenAndServe(addr string) error {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/_/ws", h.handleWebsocketEndpoint)
-	router.HandleFunc("/_/operations/{operationId}", h.handleGetOperationEndpoint).Methods("GET")
+	router.HandleFunc("/_/ws", h.handleWebsocket)
+	router.HandleFunc("/_/operations/{operationId}", h.handleGetOperation).Methods("GET")
 
 	server := &http.Server{
 		Addr: addr,
@@ -38,7 +38,7 @@ func (h *HttpServer) ListenAndServe(addr string) error {
 			if strings.HasPrefix(r.RequestURI, "/_/") {
 				router.ServeHTTP(rw, r)
 			} else if strings.HasPrefix(r.RequestURI, "/http://") || strings.HasPrefix(r.RequestURI, "/https://") {
-				h.handleProxyEndpoint(rw, r)
+				h.handleProxy(rw, r)
 			} else {
 				respondNotFound(rw)
 			}

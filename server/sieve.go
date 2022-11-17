@@ -10,7 +10,7 @@ type OperationsStoreListener = func(o *Operation)
 
 // OperationsStore defines all of the different ways to persist and retrieve operations.
 type OperationsStore struct {
-	mutex      sync.RWMutex
+	mtx        sync.RWMutex
 	listeners  map[uint]OperationsStoreListener
 	operations map[string]*Operation
 }
@@ -25,8 +25,8 @@ func NewOperationsStore() *OperationsStore {
 
 // AddListener adds a listener to the store, returning a function that can be used to remove that newly added listener.
 func (s *OperationsStore) AddListener(listener OperationsStoreListener) func() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	lid := uint(len(s.listeners) + 1)
 
@@ -39,8 +39,8 @@ func (s *OperationsStore) AddListener(listener OperationsStoreListener) func() {
 
 // Save persists an operation and updates all listeners.
 func (s *OperationsStore) Save(o *Operation) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
 	for _, l := range s.listeners {
 		l(o)
@@ -56,8 +56,8 @@ func (s *OperationsStore) GetOperationById(id string) *Operation {
 
 // removeListener removes a listener from the store.
 func (s *OperationsStore) removeListener(lid uint) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	delete(s.listeners, lid)
 }
