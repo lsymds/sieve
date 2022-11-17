@@ -43,7 +43,7 @@ func (s *OperationsStore) Save(o *Operation) {
 	defer s.mtx.RUnlock()
 
 	for _, l := range s.listeners {
-		l(o)
+		go l(o)
 	}
 
 	s.operations[o.Id] = o
