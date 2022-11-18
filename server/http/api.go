@@ -80,5 +80,7 @@ func (s *HttpServer) handleGetOperation(rw http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	rw.Header().Add("Content-Type", "application/json")
+
 	json.NewEncoder(rw).Encode(operation)
 }
