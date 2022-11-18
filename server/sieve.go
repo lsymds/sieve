@@ -51,6 +51,9 @@ func (s *OperationsStore) Save(o *Operation) {
 
 // GetOperationById retrieves an operation by its identifier.
 func (s *OperationsStore) GetOperationById(id string) *Operation {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
 	return s.operations[id]
 }
 
