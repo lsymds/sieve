@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent } from "@vue/runtime-core";
+import { computed, defineComponent } from "@vue/runtime-core";
 import NoOperations from "./components/NoOperations.vue";
 import OperationSummary from "./components/OperationSummary.vue";
 import { useOperationsStore } from "./stores/operations_store";
@@ -10,16 +10,32 @@ export default defineComponent({
   setup() {
     const operationsStore = useOperationsStore();
 
+    const operations = computed(() =>
+      Object.keys(operationsStore.operations)
+        .map((k) => operationsStore.operations[k])
+        .reverse()
+    );
+
+    const hasOperations = computed(
+      () => Object.keys(operationsStore.operations).length > 0
+    );
+
     return {
-      operations: operationsStore.operations,
+      hasOperations,
+      operations: operations,
     };
   },
 });
 </script>
 
 <template>
-  <NoOperations v-if="operations.length === 0" />
-  <div :key="operation" v-else v-for="operation of operations">
-    <OperationSummary :operation="operation" />
+  <NoOperations v-if="!hasOperations" />
+  <div v-else class="flex flex-col gap-4">
+    <h1 class="text-xl">Operations</h1>
+    <OperationSummary
+      :key="operation"
+      v-for="operation of operations"
+      :operation="operation"
+    />
   </div>
 </template>

@@ -22,7 +22,7 @@ websocket.onmessage = function (evt: MessageEvent<any>) {
   if (type === "operation") {
     // Fetch the operation's details.
     const operationsStore = useOperationsStore();
-    operationsStore.getOperation(data.id);
+    operationsStore.getOperation(data.operationId);
   }
 };
 
