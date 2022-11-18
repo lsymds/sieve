@@ -41,10 +41,18 @@ func main() {
 	pages.AddPage("operation", operationPage, true, false)
 
 	// Overview page - essentially a giant dashboard of operations that have occurred.
-	overviewPage := tview.NewList()
-	overviewPage.SetBorder(true)
-	overviewPage.SetTitle("Operations")
-	overviewPage.SetSelectedFunc(func(i int, p string, secondaryText string, r rune) {
+	overviewPage := tview.NewFlex()
+	overviewPage.SetDirection(tview.FlexColumnCSS)
+
+	header := tview.NewTextView()
+	header.SetBorder(true)
+	fmt.Fprintf(header, `The proxy is running on http://localhost:8080/`)
+	overviewPage.AddItem(header, 3, 0, false)
+
+	operationsList := tview.NewList()
+	operationsList.SetBorder(true)
+	operationsList.SetTitle("Operations")
+	operationsList.SetSelectedFunc(func(i int, p string, secondaryText string, r rune) {
 		oid := strings.Split(secondaryText, " - ")[0]
 		operation := operationsStore.GetOperationById(oid)
 
@@ -69,16 +77,18 @@ Path:
 		// Switch the page to the operation page.
 		pages.SwitchToPage("operation")
 	})
+	overviewPage.AddItem(operationsList, 0, 1, true)
+
 	pages.AddPage("overview", overviewPage, true, true)
 
 	// Subscribe to operations changes.
-	operationsStore.AddListener(func(o *sieve.Operation) {
+	operationsStore.AddListener(func(o sieve.Operation) {
 		app.QueueUpdateDraw(func() {
-			for _, i := range overviewPage.FindItems("", o.Id, true, true) {
-				overviewPage.RemoveItem(i)
+			for _, i := range operationsList.FindItems("", o.Id, true, true) {
+				operationsList.RemoveItem(i)
 			}
 
-			overviewPage.InsertItem(
+			operationsList.InsertItem(
 				0,
 				o.Request.FullUrl,
 				fmt.Sprintf("%s - %s", o.Id, o.CreatedAt.Local().Format("15:04:05")),
@@ -88,7 +98,7 @@ Path:
 		})
 	})
 
-	app.SetRoot(pages, true).SetFocus(overviewPage).Run()
+	app.SetRoot(pages, true).Run()
 }
 
 func runProxy(operationsStore *sieve.OperationsStore) {

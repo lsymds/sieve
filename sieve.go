@@ -6,20 +6,20 @@ import (
 )
 
 // OperationsStoreListener represents a function signature that any listeners must adhere to.
-type OperationsStoreListener = func(o *Operation)
+type OperationsStoreListener = func(o Operation)
 
 // OperationsStore defines all of the different ways to persist and retrieve operations.
 type OperationsStore struct {
 	mtx        sync.RWMutex
 	listeners  map[uint]OperationsStoreListener
-	operations map[string]*Operation
+	operations map[string]Operation
 }
 
 // NewOperationsStore creates a new instance of an operations store.
 func NewOperationsStore() *OperationsStore {
 	return &OperationsStore{
-		listeners:  make(map[uint]func(o *Operation)),
-		operations: make(map[string]*Operation),
+		listeners:  make(map[uint]func(o Operation)),
+		operations: make(map[string]Operation),
 	}
 }
 
@@ -38,7 +38,7 @@ func (s *OperationsStore) AddListener(listener OperationsStoreListener) func() {
 }
 
 // Save persists an operation and updates all listeners.
-func (s *OperationsStore) Save(o *Operation) {
+func (s *OperationsStore) Save(o Operation) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
@@ -50,7 +50,7 @@ func (s *OperationsStore) Save(o *Operation) {
 }
 
 // GetOperationById retrieves an operation by its identifier.
-func (s *OperationsStore) GetOperationById(id string) *Operation {
+func (s *OperationsStore) GetOperationById(id string) Operation {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
@@ -70,8 +70,8 @@ func (s *OperationsStore) removeListener(lid uint) {
 type Operation struct {
 	Id        string    `json:"id"`
 	Host      string    `json:"host"`
-	Request   *Request  `json:"request"`
-	Response  *Response `json:"response"`
+	Request   Request   `json:"request"`
+	Response  Response  `json:"response"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -84,6 +84,6 @@ type Request struct {
 
 // Response represents the response retrieved from the request made to the origin server.
 type Response struct {
-	Latency   *time.Duration `json:"latency"`
-	TotalTime *time.Duration `json:"totalTime"`
+	Latency   time.Duration `json:"latency"`
+	TotalTime time.Duration `json:"totalTime"`
 }

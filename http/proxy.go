@@ -34,7 +34,7 @@ func (s *HttpServer) handleProxy(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := mapProxiedResponse(originResponse, rw, &timeBeforeRequest)
+	response, err := mapProxiedResponse(originResponse, rw, timeBeforeRequest)
 	if err != nil {
 		respondBadGateway(rw)
 		return
@@ -62,11 +62,11 @@ func buildIntendedRequest(r *http.Request) (*http.Request, error) {
 }
 
 // buildOperation constructs a the wrapper representation of a given request and response.
-func buildOperation(r *http.Request) *sieve.Operation {
-	operation := &sieve.Operation{
+func buildOperation(r *http.Request) sieve.Operation {
+	operation := sieve.Operation{
 		Id:   uuid.NewString(),
 		Host: r.Host,
-		Request: &sieve.Request{
+		Request: sieve.Request{
 			Host:    r.Host,
 			Path:    r.URL.Path,
 			FullUrl: r.URL.RequestURI(),
@@ -83,9 +83,9 @@ func buildOperation(r *http.Request) *sieve.Operation {
 func mapProxiedResponse(
 	originResponse *http.Response,
 	rw http.ResponseWriter,
-	timeBeforeRequest *time.Time,
-) (*sieve.Response, error) {
-	latency := time.Since(*timeBeforeRequest)
+	timeBeforeRequest time.Time,
+) (sieve.Response, error) {
+	latency := time.Since(timeBeforeRequest)
 
 	defer originResponse.Body.Close()
 
@@ -106,10 +106,10 @@ func mapProxiedResponse(
 
 	// Body content.
 	if _, err := io.Copy(rw, originResponse.Body); err != nil {
-		return nil, err
+		return sieve.Response{}, err
 	}
 
-	totalTime := time.Since(*timeBeforeRequest)
+	totalTime := time.Since(timeBeforeRequest)
 
-	return &sieve.Response{Latency: &latency, TotalTime: &totalTime}, nil
+	return sieve.Response{Latency: latency, TotalTime: totalTime}, nil
 }
