@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/lsymds/sieve"
 )
@@ -33,7 +34,7 @@ func (h *HttpServer) ListenAndServe(addr string) error {
 
 	server := &http.Server{
 		Addr: addr,
-		Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		Handler: handlers.CORS()(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			// If internal API (ala /_/) let the multiplexer handle it - else, proxy it.
 			if strings.HasPrefix(r.RequestURI, "/_/") {
 				router.ServeHTTP(rw, r)
@@ -42,7 +43,7 @@ func (h *HttpServer) ListenAndServe(addr string) error {
 			} else {
 				respondNotFound(rw)
 			}
-		}),
+		})),
 	}
 
 	return server.ListenAndServe()
