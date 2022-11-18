@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/lsymds/sieve"
 )
 
@@ -27,23 +25,15 @@ func NewHttpServer(store *sieve.OperationsStore) (*HttpServer, error) {
 
 // ListenAndServe listens on the provided port, serving any relevant endpoints for its lifetime.
 func (h *HttpServer) ListenAndServe(addr string) error {
-	router := mux.NewRouter()
-
-	router.HandleFunc("/_/ws", h.handleWebsocket)
-	router.HandleFunc("/_/operations/{operationId}", h.handleGetOperation).Methods("GET")
-
 	server := &http.Server{
 		Addr: addr,
-		Handler: handlers.CORS()(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			// If internal API (ala /_/) let the multiplexer handle it - else, proxy it.
-			if strings.HasPrefix(r.RequestURI, "/_/") {
-				router.ServeHTTP(rw, r)
-			} else if strings.HasPrefix(r.RequestURI, "/http://") || strings.HasPrefix(r.RequestURI, "/https://") {
+		Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.RequestURI, "/http://") || strings.HasPrefix(r.RequestURI, "/https://") {
 				h.handleProxy(rw, r)
 			} else {
 				respondNotFound(rw)
 			}
-		})),
+		}),
 	}
 
 	return server.ListenAndServe()
