@@ -10,39 +10,35 @@ import (
 	"github.com/rivo/tview"
 )
 
+var (
+	app             = tview.NewApplication()
+	pages           = tview.NewPages()
+	operationsStore = sieve.NewOperationsStore()
+)
+
+// main runs the application - booting the proxy in the background and rendering the initial TUI pages.
 func main() {
-	operationsStore := sieve.NewOperationsStore()
+	go runProxy()
 
-	go runProxy(operationsStore)
+	// Build the initial dashboard/overview page.
+	overviewPage := buildOverviewPage()
+	pages.AddPage("overview", overviewPage, true, true)
 
-	app := tview.NewApplication()
-	pages := tview.NewPages()
+	app.SetRoot(pages, true).Run()
+}
 
-	// Operation page - details about the operation that occurred.
-	operationPage := tview.NewFlex()
-	operationPage.SetDirection(tview.FlexRowCSS)
-	operationPage.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+// buildOverviewPage builds the dashboard or overview page. It subscribes to proxy operations and adds them to a
+// list where the consumer can then opt to view more information about it.
+func buildOverviewPage() *tview.Flex {
+	overviewPage := tview.NewFlex()
+	overviewPage.SetDirection(tview.FlexColumnCSS)
+	overviewPage.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyESC {
-			pages.SwitchToPage("overview")
-			return nil
+			app.Stop()
 		}
 
 		return event
 	})
-
-	requestDetails := tview.NewTextView()
-	requestDetails.SetBorder(true).SetTitle("Request")
-	operationPage.AddItem(requestDetails, 0, 1, true)
-
-	responseDetails := tview.NewTextView()
-	responseDetails.SetBorder(true).SetTitle("Response")
-	operationPage.AddItem(responseDetails, 0, 1, true)
-
-	pages.AddPage("operation", operationPage, true, false)
-
-	// Overview page - essentially a giant dashboard of operations that have occurred.
-	overviewPage := tview.NewFlex()
-	overviewPage.SetDirection(tview.FlexColumnCSS)
 
 	header := tview.NewTextView()
 	header.SetBorder(true)
@@ -56,32 +52,11 @@ func main() {
 		oid := strings.Split(secondaryText, " - ")[0]
 		operation := operationsStore.GetOperationById(oid)
 
-		requestDetails.Clear()
-
-		// Populate the request overview.
-		fmt.Fprintf(
-			requestDetails,
-			`URL:
-	%s
-
-Host:
-	%s
-
-Path:
-	%s`,
-			operation.Request.FullUrl,
-			operation.Request.Host,
-			operation.Request.Path,
-		)
-
-		// Switch the page to the operation page.
-		pages.SwitchToPage("operation")
+		buildAndAddOperationPage(operation)
 	})
 	overviewPage.AddItem(operationsList, 0, 1, true)
 
-	pages.AddPage("overview", overviewPage, true, true)
-
-	// Subscribe to operations changes.
+	// Subscribe to operation changes and add them to the overview list.
 	operationsStore.AddListener(func(o sieve.Operation) {
 		app.QueueUpdateDraw(func() {
 			for _, i := range operationsList.FindItems("", o.Id, true, true) {
@@ -98,10 +73,51 @@ Path:
 		})
 	})
 
-	app.SetRoot(pages, true).Run()
+	pages.AddPage("overview", overviewPage, true, true)
+
+	return overviewPage
 }
 
-func runProxy(operationsStore *sieve.OperationsStore) {
+// buildAndAddOperationPage builds an operation detail page, populates it from the provided operation, and then
+// switches it to be the currently rendered view in the TUI.
+func buildAndAddOperationPage(operation sieve.Operation) {
+	// Build the page.
+	operationPage := tview.NewFlex()
+	operationPage.SetDirection(tview.FlexRowCSS)
+	operationPage.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyESC {
+			pages.SwitchToPage("overview")
+			pages.RemovePage("operation")
+			return nil
+		}
+
+		return event
+	})
+
+	requestDetails := tview.NewTextView()
+	requestDetails.SetBorder(true).SetTitle("Request")
+	operationPage.AddItem(requestDetails, 0, 1, true)
+
+	responseDetails := tview.NewTextView()
+	responseDetails.SetBorder(true).SetTitle("Response")
+	operationPage.AddItem(responseDetails, 0, 1, false)
+
+	pages.AddPage("operation", operationPage, true, false)
+
+	// Populate the content from the operation.
+	fmt.Fprintf(
+		requestDetails,
+		`URL:
+	%s`,
+		operation.Request.FullUrl,
+	)
+
+	// Switch to the built page.
+	pages.SwitchToPage("operation")
+}
+
+// runProxy boots the proxy API and runs it on the configured port. It panics if there is an error listening.
+func runProxy() {
 	server, err := http.NewHttpServer(operationsStore)
 	if err != nil {
 		panic(err)
